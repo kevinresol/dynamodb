@@ -4,7 +4,7 @@ import haxe.DynamicAccess;
 import dynamodb.Expr;
 
 class ParamBuilder {
-	public static function buildQueryExpr<T>(tableName, expr:ExprData<T>):QueryParams {
+	public static function buildQuery<T>(tableName, expr:ExprData<T>):QueryParams {
 		return new QueryParamBuilder(expr).toParams(tableName);
 	}
 	
