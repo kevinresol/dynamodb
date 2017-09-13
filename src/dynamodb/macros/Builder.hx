@@ -2,6 +2,7 @@ package dynamodb.macros;
 
 import haxe.macro.Expr;
 import tink.macro.BuildCache;
+import tink.typecrawler.Crawler;
 using tink.MacroApi;
 
 class Builder {
@@ -31,6 +32,7 @@ class Builder {
 			}
 		});
 	}
+	
 	public static function buildTable() {
 		return BuildCache.getType('dynamodb.Table', function(ctx:BuildContext) {
 			var name = ctx.name;
@@ -48,14 +50,46 @@ class Builder {
 				
 				case t: throw 'Unsupported type: $t';
 			}
-			var ct = ctx.type.toComplex();
-			var ct = macro:dynamodb.Fields<$ct>;
-			var def = macro class $name extends dynamodb.Table.TableBase<$ct> {
-				public function new() {
+			var modelCt = ctx.type.toComplex();
+			var fieldsCt = macro:dynamodb.Fields<$modelCt>;
+			var def = macro class $name extends dynamodb.Table.TableBase<$modelCt, $fieldsCt> {
+				public function new(name) {
+					super(name);
 					fields = ${EObjectDecl(fields).at()};
+				}
+				
+				override function put(data:$modelCt) {
+					$i{"$type"}(new ParamBuilder.Put<$modelCt>().build);
+					var item = new ParamBuilder.Put<$modelCt>().build(data);
+					trace(item);
 				}
 			}
 			def.pack = ['dynamodb', 'tables'];
+			return def;
+		});
+	}
+	
+	public static function buildPut() {
+		return BuildCache.getType('dynamodb.Put', function(ctx:BuildContext) {
+			var name = ctx.name;
+			var ct = ctx.type.toComplex();
+				
+			var def = macro class $name {
+				public function new() {}
+			} 
+			
+			function add(t:TypeDefinition)
+				def.fields = def.fields.concat(t.fields);
+			
+			var ret = Crawler.crawl(ctx.type, ctx.pos, GenPut);
+			
+			def.fields = def.fields.concat(ret.fields);
+			
+			add(macro class { 
+				public function build(value)
+					@:pos(ret.expr.pos) return ${ret.expr};
+			});
+			
 			return def;
 		});
 	}

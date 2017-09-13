@@ -1,7 +1,23 @@
 package dynamodb;
 
+
+#if macro
+
+using tink.MacroApi;
+
+class ParamBuilder {
+	public static macro function buildPut(data:Expr) {
+		
+	}
+}
+
+#else
+
 import haxe.DynamicAccess;
 import dynamodb.Expr;
+
+@:genericBuild(dynamodb.macros.Builder.buildPut())
+class Put<T> {}
 
 class ParamBuilder {
 	public static function buildQuery<T>(tableName, expr:ExprData<T>):QueryParams {
@@ -50,6 +66,7 @@ class QueryParamBuilder extends ParamBuilder {
 		}
 	}
 }
+#end
 
 typedef Params = {
 	TableName:String,

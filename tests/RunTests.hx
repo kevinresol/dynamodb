@@ -6,8 +6,9 @@ import tink.testrunner.*;
 class RunTests {
 
   static function main() {
-    var table:dynamodb.Table<{name:String}> = new dynamodb.Table<{name:String}>();
+    var table:dynamodb.Table<{name:String, age:Int}> = new dynamodb.Table<{name:String, age:Int}>('name');
     table.query(function(fields) return fields.name == 'jjj');
+    table.put({name:'Kevin', age:25});
     
     Runner.run(TestBatch.make([
       new ExprTest(),
