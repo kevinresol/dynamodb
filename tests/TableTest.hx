@@ -65,6 +65,22 @@ class TableTest {
 			.handle(asserts.handle);
 		return asserts;
 	}
+	
+	public function scan() {
+		table.create()
+			.next(function(_) return table.put({id: 'my-id', values: ['a', 'b', 'c']}))
+			.next(function(_) return table.scan(function(fields) return fields.values.contains('a')))
+			.next(function(data) {
+				asserts.assert(data.length == 1);
+				return table.scan(function(fields) return fields.values.contains('d'));
+			})
+			.next(function(data) {
+				asserts.assert(data.length == 0);
+				return Noise;
+			})
+			.handle(asserts.handle);
+		return asserts;
+	}
 }
 
 typedef MyTable = {
