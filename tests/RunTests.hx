@@ -13,6 +13,7 @@ class RunTests {
     Runner.run(TestBatch.make([
       new ExprTest(),
       new ParamTest(),
+      new OperationTest(),
     ])).handle(Runner.exit);
   }
   

@@ -59,7 +59,6 @@ class Builder {
 				}
 				
 				override function put(data:$modelCt) {
-					$i{"$type"}(new ParamBuilder.Put<$modelCt>().build);
 					var item = new ParamBuilder.Put<$modelCt>().build(data);
 					trace(item);
 				}

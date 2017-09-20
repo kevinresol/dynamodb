@@ -48,7 +48,7 @@ class ParamBuilder {
 	
 	function binop<L, R, T>(op:Binop<L, R, T>):String
 		return switch op {
-			case Eq: '=';
+			case Eq: ' = ';
 		}
 }
 

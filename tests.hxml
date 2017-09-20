@@ -1,4 +1,6 @@
 -cp tests
 -main RunTests
 # -dce full
+-lib futurize
 -lib tink_unittest
+-lib extern-js-aws-sdk
