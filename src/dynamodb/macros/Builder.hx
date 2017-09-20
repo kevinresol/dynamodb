@@ -10,7 +10,7 @@ class Builder {
 		return BuildCache.getType('dynamodb.Fields', function(ctx:BuildContext) {
 			var fields:Array<Field> = [];
 			
-			switch ctx.type {
+			switch ctx.type.reduce() {
 				case TAnonymous(_.get() => anon):
 					for(field in anon.fields) {
 						var ct = field.type.toComplex();
@@ -38,13 +38,31 @@ class Builder {
 			var name = ctx.name;
 			
 			var fields:Array<{field:String, expr:Expr}> = [];
-			switch ctx.type {
+			var infoFields:Array<Expr> = [];
+			switch ctx.type.reduce() {
 				case TAnonymous(_.get() => anon):
 					for(field in anon.fields) {
 						var ct = field.type.toComplex();
 						fields.push({
 							field: field.name,
 							expr: macro dynamodb.Expr.ExprData.EField($v{field.name}),
+						});
+						infoFields.push(macro {
+							name: $v{field.name},
+							valueType: ${switch field.type {
+								case TInst(_.get() => {name: 'Array', pack: []}, [_.getID() => 'String']): macro TStringSet;
+								case TInst(_.get() => {name: 'Array', pack: []}, [_.getID() => 'Int' | 'Float']): macro TNumberSet;
+								case TInst(_.get() => {name: 'Array', pack: []}, [_.getID() => 'haxe.io.Bytes']): macro TBinarySet;
+								case _.getID() => 'String': macro TString;
+								case _.getID() => 'Int' | 'Float': macro TNumber;
+								case _.getID() => 'haxe.io.Bytes': macro TBinary;
+								case v: field.pos.error('Unsupported data type $v');
+							}},
+							indexType: ${switch field.meta.extract(':index') {
+								case []: macro null;
+								case [{params: [e]}]: macro ($e:dynamodb.IndexType);
+								default: field.pos.error('Invalid @:index meta');
+							}}
 						});
 					}
 				
@@ -53,9 +71,12 @@ class Builder {
 			var modelCt = ctx.type.toComplex();
 			var fieldsCt = macro:dynamodb.Fields<$modelCt>;
 			var def = macro class $name extends dynamodb.Table.TableBase<$modelCt, $fieldsCt> {
-				public function new(name) {
-					super(name);
+				public function new(name, driver) {
+					super(name, driver);
 					fields = ${EObjectDecl(fields).at()};
+					info = {
+						fields: ${EArrayDecl(infoFields).at()},
+					}
 				}
 				
 				override function put(data:$modelCt) {

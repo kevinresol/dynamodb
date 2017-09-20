@@ -88,6 +88,15 @@ class ParamBuilder {
 				id;
 			case EBinop(op, e1, e2):
 				rec(e1) + binop(op) + rec(e2);
+			case ECall(f):
+				func(f);
+		}
+	}
+	
+	function func(f:Func) {
+		return switch f {
+			case Contains(arr, val): 
+				'contains(${rec(arr)}, ${rec(val)})';
 		}
 	}
 	
@@ -96,6 +105,8 @@ class ParamBuilder {
 			case Eq: ' = ';
 			case Gt: ' > ';
 			case Lt: ' < ';
+			case And: ' AND ';
+			case Or: ' OR ';
 		}
 	#end
 }

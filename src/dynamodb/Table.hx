@@ -1,28 +1,42 @@
 package dynamodb;
 
+import dynamodb.driver.*;
+
 @:genericBuild(dynamodb.macros.Builder.buildTable())
 class Table<T> {}
 
 class TableBase<Model, Fields> {
 	public var name(default, null):String;
 	public var fields(default, null):Fields;
-	public var runfimeFields(default, null):Iterable<TableField>;
+	public var info(default, null):{fields:Iterable<TableField>};
+	var driver:Driver;
 	
-	public function new(name)
+	public function new(name, driver) {
 		this.name = name;
+		this.driver = driver;
+	}
+	
+	public function create() {
+		var param = ParamBuilder.createTable(name, [for(field in info.fields) if(field.indexType != null) field]);
+		return driver.createTable(param);
+	}
+	
+	public function delete() {
+		return driver.deleteTable({TableName: name});
+	}
 		
 	public function put(data:Model) {
 		throw 'abstract';
 	}
 	
-	public function query(expr:Fields->Expr<Bool>) {
-		var params = ParamBuilder.query(name, expr(fields));
-		trace(params);
+	public function scan(expr:Fields->Expr<Bool>) {
+		var params = ParamBuilder.scan(name, expr(fields));
+		return driver.scan(params);
 	}
 }
 
 typedef TableField = {
 	name:String,
-	index:IndexType,
-	type:ValueType,
+	indexType:IndexType,
+	valueType:ValueType,
 }
