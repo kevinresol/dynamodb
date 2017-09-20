@@ -16,7 +16,7 @@ class TableBase<Model, Fields> {
 	}
 	
 	public function query(expr:Fields->Expr<Bool>) {
-		var params = ParamBuilder.buildQuery(name, expr(fields));
+		var params = ParamBuilder.query(name, expr(fields));
 		trace(params);
 	}
 }

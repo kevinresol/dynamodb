@@ -8,7 +8,7 @@ import tink.typecrawler.Generator;
 using tink.MacroApi;
 using tink.CoreApi;
 
-class GenPut {
+class GenWriter {
 	public static function wrap(placeholder:Expr, ct:ComplexType):Function {
 		return placeholder.func(['value'.toArg(ct)], false);
 	}

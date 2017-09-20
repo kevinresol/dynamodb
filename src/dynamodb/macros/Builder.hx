@@ -59,8 +59,7 @@ class Builder {
 				}
 				
 				override function put(data:$modelCt) {
-					var item = new ParamBuilder.Put<$modelCt>().build(data);
-					trace(item);
+					var item = dynamodb.Item.toParam(data);
 				}
 			}
 			def.pack = ['dynamodb', 'tables'];
@@ -68,8 +67,8 @@ class Builder {
 		});
 	}
 	
-	public static function buildPut() {
-		return BuildCache.getType('dynamodb.Put', function(ctx:BuildContext) {
+	public static function buildItemWriter() {
+		return BuildCache.getType('dynamodb.ItemWriter', function(ctx:BuildContext) {
 			var name = ctx.name;
 			var ct = ctx.type.toComplex();
 				
@@ -80,12 +79,37 @@ class Builder {
 			function add(t:TypeDefinition)
 				def.fields = def.fields.concat(t.fields);
 			
-			var ret = Crawler.crawl(ctx.type, ctx.pos, GenPut);
+			var ret = Crawler.crawl(ctx.type, ctx.pos, GenWriter);
 			
 			def.fields = def.fields.concat(ret.fields);
 			
 			add(macro class { 
 				public function build(value)
+					@:pos(ret.expr.pos) return ${ret.expr};
+			});
+			
+			return def;
+		});
+	}
+	
+	public static function buildItemParser() {
+		return BuildCache.getType('dynamodb.ItemParser', function(ctx:BuildContext) {
+			var name = ctx.name;
+			var ct = ctx.type.toComplex();
+				
+			var def = macro class $name {
+				public function new() {}
+			} 
+			
+			function add(t:TypeDefinition)
+				def.fields = def.fields.concat(t.fields);
+			
+			var ret = Crawler.crawl(ctx.type, ctx.pos, GenReader);
+			
+			def.fields = def.fields.concat(ret.fields);
+			
+			add(macro class { 
+				public function parse(value)
 					@:pos(ret.expr.pos) return ${ret.expr};
 			});
 			

@@ -16,6 +16,27 @@ class NodeDriver implements Driver {
 	public function getItem<T>(params:{}):Promise<T>
 		return @:futurize dynamodb.getItem(cast params, $cb1)
 			.next(function(data):T return cast rectify(data.Item));
+			// TODO: how to generate generic function again?
+			
+	
+	public function scan<T>(params:{}):Promise<Array<T>>
+		return @:futurize dynamodb.scan(cast params, $cb1)
+			.next(function(data):Array<T> return [for(item in data.Items) (cast rectify(item):T)]);
+	
+	public function putItem<T>(params:{}):Promise<Noise>
+		return @:futurize dynamodb.putItem(cast params, $cb1);
+	
+	public function createTable<T>(params:{}):Promise<Noise>
+		return @:futurize dynamodb.createTable(cast params, $cb1);
+	
+	public function deleteTable<T>(params:{}):Promise<Noise>
+		return @:futurize dynamodb.deleteTable(cast params, $cb1);
+	
+	public function listTables<T>():Promise<Array<String>>
+		return @:futurize dynamodb.listTables({}, $cb1)
+			.next(function(o) return o.TableNames);
+			
+			
 	
 	function convertValue(item:DynamicAccess<Any>):Any {
 		for(type in item.keys()) {
@@ -44,17 +65,4 @@ class NodeDriver implements Driver {
 		}
 		return ret;
 	}
-	
-	public function putItem<T>(params:{}):Promise<Noise>
-		throw 'todo';
-	
-	public function createTable<T>(params:{}):Promise<Noise>
-		return @:futurize dynamodb.createTable(cast params, $cb1);
-	
-	public function deleteTable<T>(params:{}):Promise<Noise>
-		return @:futurize dynamodb.deleteTable(cast params, $cb1);
-	
-	public function listTables<T>():Promise<Array<String>>
-		return @:futurize dynamodb.listTables({}, $cb1)
-			.next(function(o) return o.TableNames);
 }
