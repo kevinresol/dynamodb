@@ -1,6 +1,7 @@
 package dynamodb.macros;
 
 import haxe.macro.Expr;
+import haxe.macro.Type;
 import tink.macro.BuildCache;
 import tink.typecrawler.Crawler;
 using tink.MacroApi;
@@ -19,6 +20,37 @@ class Builder {
 							kind: FVar(macro:dynamodb.Expr<$ct>, null),
 							pos: field.pos,
 						});
+					}
+				case t: throw 'Unsupported type: $t';
+			}
+			
+			return {
+				fields: fields,
+				kind: TDStructure,
+				name: ctx.name,
+				pack: ['dynamodb', 'fields'],
+				pos: ctx.pos,
+			}
+		});
+	}
+	
+	public static function buildIndexFields() {
+		return BuildCache.getType('dynamodb.IndexFields', function(ctx:BuildContext) {
+			var fields:Array<Field> = [];
+			
+			switch ctx.type.reduce() {
+				case TAnonymous(_.get() => anon):
+					for(field in anon.fields) {
+						switch getIndexType(field) {
+							case macro null: // skip
+							case _:
+								fields.push({
+									name: field.name,
+									meta: [{name: ':optional', pos: field.pos}],
+									kind: FVar(field.type.toComplex(), null),
+									pos: field.pos,
+								});
+						}
 					}
 				case t: throw 'Unsupported type: $t';
 			}
@@ -58,11 +90,7 @@ class Builder {
 								case _.getID() => 'haxe.io.Bytes': macro TBinary;
 								case v: field.pos.error('Unsupported data type $v');
 							}},
-							indexType: ${switch field.meta.extract(':index') {
-								case []: macro null;
-								case [{params: [e]}]: macro ($e:dynamodb.IndexType);
-								default: field.pos.error('Invalid @:index meta');
-							}}
+							indexType: ${getIndexType(field)},
 						});
 					}
 				
@@ -70,7 +98,8 @@ class Builder {
 			}
 			var modelCt = ctx.type.toComplex();
 			var fieldsCt = macro:dynamodb.Fields<$modelCt>;
-			var def = macro class $name extends dynamodb.Table.TableBase<$modelCt, $fieldsCt> {
+			var indexFieldsCt = macro:dynamodb.Fields.IndexFields<$modelCt>;
+			var def = macro class $name extends dynamodb.Table.TableBase<$modelCt, $fieldsCt, $indexFieldsCt> {
 				public function new(name, driver) {
 					super(name, driver);
 					fields = ${EObjectDecl(fields).at()};
@@ -79,9 +108,12 @@ class Builder {
 					}
 				}
 				
-				override function put(data:$modelCt) {
-					var item = dynamodb.Item.toParam(data);
-				}
+				override function get(indices:$indexFieldsCt):tink.core.Promise<$modelCt>
+					return driver.getItem(dynamodb.ParamBuilder.get(name, indices));
+					
+				override function put(data:$modelCt)
+					return driver.putItem(dynamodb.ParamBuilder.put(name, data));
+					
 			}
 			def.pack = ['dynamodb', 'tables'];
 			return def;
@@ -136,5 +168,13 @@ class Builder {
 			
 			return def;
 		});
+	}
+	
+	static function getIndexType(field:ClassField) {
+		return switch field.meta.extract(':index') {
+			case []: macro null;
+			case [{params: [e]}]: macro ($e:dynamodb.IndexType);
+			default: field.pos.error('Invalid @:index meta');
+		}
 	}
 }

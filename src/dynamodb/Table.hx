@@ -2,10 +2,12 @@ package dynamodb;
 
 import dynamodb.driver.*;
 
+using tink.CoreApi;
+
 @:genericBuild(dynamodb.macros.Builder.buildTable())
 class Table<T> {}
 
-class TableBase<Model, Fields> {
+class TableBase<Model, Fields, IndexFields> {
 	public var name(default, null):String;
 	public var fields(default, null):Fields;
 	public var info(default, null):{fields:Iterable<TableField>};
@@ -25,7 +27,11 @@ class TableBase<Model, Fields> {
 		return driver.deleteTable({TableName: name});
 	}
 		
-	public function put(data:Model) {
+	public function get(indices:IndexFields):Promise<Model> {
+		throw 'abstract';
+	}
+		
+	public function put(data:Model):Promise<Noise> {
 		throw 'abstract';
 	}
 	

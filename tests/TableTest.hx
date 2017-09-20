@@ -49,6 +49,22 @@ class TableTest {
 			.handle(asserts.handle);
 		return asserts;
 	}
+	
+	public function putAndGet() {
+		table.create()
+			.next(function(_) return table.put({id: 'my-id', values: ['a', 'b', 'c']}))
+			.next(function(_) return table.get({id: 'my-id'}))
+			.next(function(data) {
+				asserts.assert(data.id == 'my-id');
+				asserts.assert(data.values.length == 3);
+				asserts.assert(data.values[0] == 'a');
+				asserts.assert(data.values[1] == 'b');
+				asserts.assert(data.values[2] == 'c');
+				return Noise;
+			})
+			.handle(asserts.handle);
+		return asserts;
+	}
 }
 
 typedef MyTable = {
