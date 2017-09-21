@@ -61,8 +61,9 @@ class ParamBuilder {
 		return new ScanParamBuilder(expr).toParams(tableName);
 	}
 	
-	public static function query<T>(tableName, expr:ExprData<T>):QueryParams {
-		return new QueryParamBuilder(expr).toParams(tableName);
+	public static function query<T>(tableName, expr:ExprData<T>, ?options:{?indexName:String}):QueryParams {
+		if(options == null) options = {};
+		return new QueryParamBuilder(expr).toParams(tableName, options.indexName);
 	}
 	
 	var expression:String;
@@ -117,9 +118,10 @@ class QueryParamBuilder extends ParamBuilder {
 		expression = rec(expr);
 	}
 	
-	public function toParams(tableName:String):QueryParams {
+	public function toParams(tableName:String, indexName:String):QueryParams {
 		return {
 			TableName: tableName,
+			IndexName: indexName,
 			ExpressionAttributeNames: names,
 			ExpressionAttributeValues: values,
 			KeyConditionExpression: expression,
@@ -153,6 +155,7 @@ typedef GetParams = {
 
 typedef QueryParams = {
 	> Params,
+	?IndexName:String,
 	?ExpressionAttributeNames:DynamicAccess<String>,
 	?ExpressionAttributeValues:DynamicAccess<DynamicAccess<Dynamic>>,
 	?KeyConditionExpression:String,

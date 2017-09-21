@@ -85,5 +85,5 @@ class TableTest {
 
 typedef MyTable = {
 	@:index(IHash) var id:String;
-	var values:Array<String>;
+	@:globalSecondaryIndex('name', IHash) var values:Array<String>;
 }

@@ -10,7 +10,10 @@ class Table<T> {}
 class TableBase<Model, Fields, IndexFields> {
 	public var name(default, null):String;
 	public var fields(default, null):Fields;
-	public var info(default, null):{fields:Iterable<TableField>};
+	public var info(default, null):{
+		fields:Iterable<TableField>,
+		indices:Iterable<TableIndex>,
+	};
 	var driver:Driver;
 	
 	public function new(name, driver) {
@@ -45,4 +48,9 @@ typedef TableField = {
 	name:String,
 	indexType:IndexType,
 	valueType:ValueType,
+}
+
+typedef TableIndex = {
+	kind:IndexKind,
+	keys:Iterable<{name:String, type:IndexType}>,
 }
