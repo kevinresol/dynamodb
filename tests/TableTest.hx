@@ -26,6 +26,7 @@ class TableTest {
 		return driver.listTables()
 			.next(function(tables) return if(tables.indexOf(table.name) == -1) Noise else table.delete());
 	
+	
 	public function create() {
 		table.create()
 			.next(function(_) return driver.listTables())
@@ -52,7 +53,7 @@ class TableTest {
 	
 	public function putAndGet() {
 		table.create()
-			.next(function(_) return table.put({id: 'my-id', values: ['a', 'b', 'c']}))
+			.next(function(_) return table.put({id: 'my-id', region:'hk', values: ['a', 'b', 'c']}))
 			.next(function(_) return table.get({id: 'my-id'}))
 			.next(function(data) {
 				asserts.assert(data.id == 'my-id');
@@ -68,7 +69,7 @@ class TableTest {
 	
 	public function scan() {
 		table.create()
-			.next(function(_) return table.put({id: 'my-id', values: ['a', 'b', 'c']}))
+			.next(function(_) return table.put({id: 'my-id', region:'hk', values: ['a', 'b', 'c']}))
 			.next(function(_) return table.scan(function(fields) return fields.values.contains('a')))
 			.next(function(data) {
 				asserts.assert(data.length == 1);
@@ -85,5 +86,6 @@ class TableTest {
 
 typedef MyTable = {
 	@:index(IHash) var id:String;
-	@:globalSecondaryIndex('name', IHash) var values:Array<String>;
+	@:globalSecondaryIndex('region-index', IHash) var region:String;
+	var values:Array<String>;
 }

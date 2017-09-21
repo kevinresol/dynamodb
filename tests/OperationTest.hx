@@ -32,7 +32,7 @@ class OperationTest {
 		driver.listTables()
 			.next(function(tables) {
 				asserts.assert(tables.length == 0);
-				var param = ParamBuilder.createTable('mytable', [{name: 'id', valueType: TString, indexType: IHash}]);
+				var param = ParamBuilder.createTable('mytable', [{kind: Primary, fields: [{name: 'id', valueType: TString, indexType: IHash}]}]);
 				return driver.createTable(param);
 			})
 			.next(function(_) return driver.listTables())
@@ -45,7 +45,7 @@ class OperationTest {
 	}
 	
 	public function put() {
-		var param = ParamBuilder.createTable('mytable', [{name: 'id', valueType: TString, indexType: IHash}]);
+		var param = ParamBuilder.createTable('mytable', [{kind: Primary, fields: [{name: 'id', valueType: TString, indexType: IHash}]}]);
 		driver.createTable(param)
 			.next(function(_) return driver.putItem(ParamBuilder.put('mytable', {id:'abc'})))
 			.handle(function(o) asserts.handle(o));
@@ -53,7 +53,7 @@ class OperationTest {
 	}
 	
 	public function putArray() {
-		var param = ParamBuilder.createTable('mytable', [{name: 'id', valueType: TString, indexType: IHash}]);
+		var param = ParamBuilder.createTable('mytable', [{kind: Primary, fields: [{name: 'id', valueType: TString, indexType: IHash}]}]);
 		driver.createTable(param)
 			.next(function(_) return driver.putItem(ParamBuilder.put('mytable', {id:'abc', values: ['apple', 'orange']})))
 			.handle(function(o) asserts.handle(o));
@@ -61,7 +61,7 @@ class OperationTest {
 	}
 	
 	public function get() {
-		var param = ParamBuilder.createTable('mytable', [{name: 'id', valueType: TString, indexType: IHash}]);
+		var param = ParamBuilder.createTable('mytable', [{kind: Primary, fields: [{name: 'id', valueType: TString, indexType: IHash}]}]);
 		driver.createTable(param)
 			.next(function(_) return driver.putItem(ParamBuilder.put('mytable', {id:'abc'})))
 			.next(function(_) return driver.getItem(ParamBuilder.get('mytable', {id:'abc'})))
@@ -76,7 +76,7 @@ class OperationTest {
 	}
 	
 	public function getArray() {
-		var param = ParamBuilder.createTable('mytable', [{name: 'id', valueType: TString, indexType: IHash}]);
+		var param = ParamBuilder.createTable('mytable', [{kind: Primary, fields: [{name: 'id', valueType: TString, indexType: IHash}]}]);
 		driver.createTable(param)
 			.next(function(_) return driver.putItem(ParamBuilder.put('mytable', {id:'abc', values: ['apple', 'orange']})))
 			.next(function(_) return driver.getItem(ParamBuilder.get('mytable', {id:'abc'})))
@@ -93,7 +93,7 @@ class OperationTest {
 	}
 	
 	public function scan() {
-		var param = ParamBuilder.createTable('mytable', [{name: 'id', valueType: TNumber, indexType: IHash}]);
+		var param = ParamBuilder.createTable('mytable', [{kind: Primary, fields: [{name: 'id', valueType: TNumber, indexType: IHash}]}]);
 		var field:Expr<Int> = EField('id');
 		driver.createTable(param)
 			.next(function(_) return driver.putItem(ParamBuilder.put('mytable', {id: 123})))
@@ -115,7 +115,7 @@ class OperationTest {
 	}
 	
 	public function scanArray() {
-		var param = ParamBuilder.createTable('mytable', [{name: 'id', valueType: TNumber, indexType: IHash}]);
+		var param = ParamBuilder.createTable('mytable', [{kind: Primary, fields: [{name: 'id', valueType: TNumber, indexType: IHash}]}]);
 		var field:Expr<Array<String>> = EField('values');
 		driver.createTable(param)
 			.next(function(_) return driver.putItem(ParamBuilder.put('mytable', {id: 123, values: ['apple', 'orange']})))

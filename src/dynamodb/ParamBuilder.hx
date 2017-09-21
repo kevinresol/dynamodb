@@ -3,6 +3,8 @@ package dynamodb;
 import haxe.DynamicAccess;
 import dynamodb.Expr;
 
+using Lambda;
+
 #if macro
 using tink.MacroApi;
 #else
@@ -28,23 +30,58 @@ class ParamBuilder {
 	}
 	
 	#if !macro
-	public static function createTable<T>(tableName:String, indices:Array<{name:String, valueType:ValueType, indexType:IndexType}>, ?provisionedThroughput:{read:Int, write:Int}):CreateTableParams {
-		var attributeDefinitions = [];
-		var keySchema = [];
+	public static function createTable<T>(tableName:String, indices:Array<{kind:IndexKind, fields:Array<{name:String, valueType:ValueType, indexType:IndexType}>, ?provisionedThroughput:{read:Int, write:Int}}>):CreateTableParams {
 		
-		for(index in indices) {
-			attributeDefinitions.push({
-				AttributeName: index.name,
-				AttributeType: index.valueType,
-			});
-			keySchema.push({
-				AttributeName: index.name,
-				KeyType: index.indexType,
-			});
+		// primary index
+		var attributeDefinitions:AttributeDefinitions = [];
+		var keySchema = [];
+		var provisionedThroughput = {read: 5, write: 5};
+		var globalSecondaryIndices = [];
+		var localSecondaryIndices = [];
+		
+		function addAttributeDefinition(name, type) {
+			if(!attributeDefinitions.exists(function(def) return def.AttributeName == name))
+				attributeDefinitions.push({
+					AttributeName: name,
+					AttributeType: type,
+				});
 		}
 		
-		if(provisionedThroughput == null)
-			 provisionedThroughput = {read: 5, write: 5}
+		for(index in indices) {
+			switch index.kind {
+				case Primary:
+					for(field in index.fields) {
+						addAttributeDefinition(field.name, field.valueType);
+						keySchema.push({
+							AttributeName: field.name,
+							KeyType: field.indexType,
+						});
+						if(index.provisionedThroughput != null) provisionedThroughput = index.provisionedThroughput;
+					}
+					
+				case GlobalSecondary(name) | LocalSecondary(name):
+					var keySchema = [];
+					for(field in index.fields) {
+						addAttributeDefinition(field.name, field.valueType);
+						keySchema.push({
+							AttributeName: field.name,
+							KeyType: field.indexType,
+						});
+					}
+					
+					(index.kind.match(GlobalSecondary(_)) ? globalSecondaryIndices : localSecondaryIndices).push({
+						IndexName: name,
+						KeySchema: keySchema,
+						Projection: {
+							ProjectionType: 'KEYS_ONLY', // TODO
+						},
+						ProvisionedThroughput: {
+							ReadCapacityUnits: index.provisionedThroughput == null ? 5 : index.provisionedThroughput.read,
+							WriteCapacityUnits: index.provisionedThroughput == null ? 5 : index.provisionedThroughput.write,
+						}
+					});
+			}
+		}
 		
 		return {
 			TableName: tableName,
@@ -54,6 +91,8 @@ class ParamBuilder {
 				ReadCapacityUnits: provisionedThroughput.read,
 				WriteCapacityUnits: provisionedThroughput.write,
 			},
+			GlobalSecondaryIndexes: globalSecondaryIndices.length == 0 ? null : globalSecondaryIndices,
+			LocalSecondaryIndexes: localSecondaryIndices.length == 0 ? null : localSecondaryIndices,
 		}
 	}
 	
@@ -172,11 +211,28 @@ typedef ScanParams = {
 
 typedef CreateTableParams = {
 	> Params,
-	AttributeDefinitions:Array<{AttributeName:String, AttributeType:ValueType}>,
-	KeySchema:Array<{AttributeName:String, KeyType:IndexType}>,
-	ProvisionedThroughput:{
-		ReadCapacityUnits:Int,
-		WriteCapacityUnits:Int,
-	}
+	AttributeDefinitions:AttributeDefinitions,
+	KeySchema:KeySchema,
+	ProvisionedThroughput:ProvisionedThroughput,
+	?GlobalSecondaryIndexes:SecondaryIndexes,
+	?LocalSecondaryIndexes:SecondaryIndexes,
 }
+
+typedef SecondaryIndexes = Array<{	
+	IndexName:String,
+	KeySchema:KeySchema,
+	ProvisionedThroughput:ProvisionedThroughput,
+	Projection: {
+		?NonKeyAttributes:Array<String>,
+		ProjectionType:String,
+	}
+}>
+
+typedef ProvisionedThroughput ={
+	ReadCapacityUnits:Int,
+	WriteCapacityUnits:Int,
+}
+
+typedef AttributeDefinitions = Array<{AttributeName:String, AttributeType:ValueType}>;
+typedef KeySchema = Array<{AttributeName:String, KeyType:IndexType}>;
 #end

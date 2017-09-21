@@ -12,7 +12,6 @@ class TableBase<Model, Fields, IndexFields> {
 	public var fields(default, null):Fields;
 	public var info(default, null):{
 		fields:Iterable<TableField>,
-		indices:Iterable<TableIndex>,
 	};
 	var driver:Driver;
 	
@@ -22,7 +21,16 @@ class TableBase<Model, Fields, IndexFields> {
 	}
 	
 	public function create() {
-		var param = ParamBuilder.createTable(name, [for(field in info.fields) if(field.indexType != null) field]);
+		var indices = new Map();
+		for(field in info.fields) for(index in field.indices) {
+			if(!indices.exists(index.kind)) indices.set(index.kind, []);
+			indices.get(index.kind).push({
+				name: field.name,
+				valueType: field.type,
+				indexType: index.type,
+			});
+		}
+		var param = ParamBuilder.createTable(name, [for(kind in indices.keys()) {kind: kind, fields: indices.get(kind)}]);
 		return driver.createTable(param);
 	}
 	
@@ -46,8 +54,8 @@ class TableBase<Model, Fields, IndexFields> {
 
 typedef TableField = {
 	name:String,
-	indexType:IndexType,
-	valueType:ValueType,
+	type:ValueType,
+	indices:Array<{kind:IndexKind, type:IndexType}>,
 }
 
 typedef TableIndex = {

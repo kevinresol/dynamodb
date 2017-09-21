@@ -89,18 +89,10 @@ class Builder {
 			var fields:Array<{field:String, expr:Expr}> = [];
 			var infoFields:Array<Expr> = [];
 			
-			
-			var infoIndices:Array<Expr> = [];
-			var infoIndicesPrimary:Array<Expr> = [];
-			var infoIndicesGlobalSecondary = new Map();
-			var infoIndicesLocalSecondary = new Map();
-			
-			
 			switch ctx.type.reduce() {
 				case TAnonymous(_.get() => anon):
 					for(field in anon.fields) {
 						var ct = field.type.toComplex();
-						var indices = getIndexTypes(field);
 						
 						fields.push({
 							field: field.name,
@@ -109,7 +101,7 @@ class Builder {
 						
 						infoFields.push(macro {
 							name: $v{field.name},
-							valueType: ${switch field.type {
+							type: ${switch field.type {
 								case TInst(_.get() => {name: 'Array', pack: []}, [_.getID() => 'String']): macro TStringSet;
 								case TInst(_.get() => {name: 'Array', pack: []}, [_.getID() => 'Int' | 'Float']): macro TNumberSet;
 								case TInst(_.get() => {name: 'Array', pack: []}, [_.getID() => 'haxe.io.Bytes']): macro TBinarySet;
@@ -118,31 +110,30 @@ class Builder {
 								case _.getID() => 'haxe.io.Bytes': macro TBinary;
 								case v: field.pos.error('Unsupported data type $v');
 							}},
-							indexType: ${indices.primary},
+							indices: $a{{
+								var indices = getIndexTypes(field);
+								var fieldIndices = [];
+								switch indices.primary {
+									case macro null: // ok
+									case e:
+										fieldIndices.push(macro {kind: Primary, type: $e});
+								}
+								
+								for(i in indices.globalSecondary) {
+									fieldIndices.push(macro {kind: GlobalSecondary($v{i.name}), type: ${i.key}});
+								}
+								
+								for(i in indices.localSecondary) {
+									fieldIndices.push(macro {kind: LocalSecondary($v{i.name}), type: ${i.key}});
+								}
+								
+								fieldIndices;
+							}},
 						});
-						
-						switch indices.primary {
-							case macro null: // ok
-							case e: infoIndicesPrimary.push(macro {name: $v{field.name}, type: ${indices.primary}});
-						}
-						
-						for(i in indices.globalSecondary) {
-							if(!infoIndicesGlobalSecondary.exists(i.name)) infoIndicesGlobalSecondary.set(i.name, []);
-							infoIndicesGlobalSecondary.get(i.name).push(macro {name: $v{field.name}, type: ${i.key}});
-						}
-						
-						for(i in indices.localSecondary) {
-							if(!infoIndicesLocalSecondary.exists(i.name)) infoIndicesLocalSecondary.set(i.name, []);
-							infoIndicesLocalSecondary.get(i.name).push(macro {name: $v{field.name}, type: ${i.key}});
-						}
 					}
 				
 				case t: throw 'Unsupported type: $t';
 			}
-			
-			infoIndices.push(macro {kind: Primary, keys: $a{infoIndicesPrimary}});
-			for(name in infoIndicesGlobalSecondary.keys()) infoIndices.push(macro {kind: GlobalSecondary($v{name}), keys: $a{infoIndicesGlobalSecondary.get(name)}});
-			for(name in infoIndicesLocalSecondary.keys()) infoIndices.push(macro {kind: LocbalSecondary($v{name}), keys: $a{infoIndicesLocalSecondary.get(name)}});
 			
 			var modelCt = ctx.type.toComplex();
 			var fieldsCt = macro:dynamodb.Fields<$modelCt>;
@@ -153,7 +144,6 @@ class Builder {
 					fields = ${EObjectDecl(fields).at()};
 					info = {
 						fields: ${EArrayDecl(infoFields).at()},
-						indices: ${EArrayDecl(infoIndices).at()},
 					}
 				}
 				
