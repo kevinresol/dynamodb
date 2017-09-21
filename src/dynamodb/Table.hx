@@ -4,7 +4,7 @@ import dynamodb.driver.*;
 
 using tink.CoreApi;
 
-@:genericBuild(dynamodb.macros.Builder.buildTable())
+#if !macro @:genericBuild(dynamodb.macros.Builder.buildTable()) #end
 class Table<T> {}
 
 class TableBase<Model, Fields, IndexFields> {

@@ -1,12 +1,29 @@
 package dynamodb.macros;
 
-import haxe.macro.Expr;
 import haxe.macro.Type;
+import haxe.macro.Expr;
 import tink.macro.BuildCache;
 import tink.typecrawler.Crawler;
 using tink.MacroApi;
 
 class Builder {
+	public static function buildDatabase() {
+		var builder = new ClassBuilder();
+		var ctor = builder.getConstructor();
+		for(member in builder) {
+			switch [member.extractMeta(':table'), member.getVar()] {
+				case [Success({params: p}), Success({type: ct})]:
+					var tableName = if(p.length == 0) member.name else p[0].getString().sure();
+					member.kind = FVar(macro:dynamodb.Table<$ct>, null);
+					member.publish();
+					ctor.init(member.name, member.pos, Value(macro new dynamodb.Table<$ct>($v{tableName}, driver)));
+				default:
+					// TODO: print error nicely
+			}
+		}
+		return builder.export();
+	}
+	
 	public static function buildFields() {
 		return BuildCache.getType('dynamodb.Fields', function(ctx:BuildContext) {
 			var fields:Array<Field> = [];
